@@ -2,10 +2,10 @@ Package: relex
 Type: Package
 Title: Statistical analysis of tandem MS/MS data
 Version: 1.0
-Date: 2009-09-28
+Date: 2011-07-18
 Author: Mark Cowley <m.cowley@garvan.org.au>
 Maintainer: Mark Cowley <m.cowley@garvan.org.au>
-Description: A collection of functions that work closely with limma (from BioC) to allow statistical analysis of MS/MS data. Currently this
+Description: A collection of functions that work closely with limma to allow statistical analysis of MS/MS data. Currently this
     works nicely with RelEx data, but should be flexible enough to handle proteomic data produced by other programs (like Maxquant?).
 Depends: R (>= 2.5.0), limma, roxygen
 Suggests: qvalue
