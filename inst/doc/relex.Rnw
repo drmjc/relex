@@ -1,0 +1,129 @@
+%
+% NOTE -- ONLY EDIT THE .Rnw FILE!!!  The .tex file is
+% likely to be overwritten.
+%
+% \VignetteIndexEntry{Relex overview}
+%\VignetteDepends{relex, limma)
+%\VignetteSuggests{qvalue}
+%\VignetteKeywords{proteomics, relative expression, limma, FDR, multiple testing, visualization}
+%\VignettePackage{relex}
+
+% preamble taken from Category 2.18.0, by MJC on 13/9/2011
+
+\documentclass[11pt]{article}
+
+\usepackage{times}
+\usepackage{hyperref}
+
+\usepackage[authoryear,round]{natbib}
+\usepackage{times}
+\usepackage{comment}
+
+\textwidth=6.2in
+\textheight=8.5in
+%\parskip=.3cm
+\oddsidemargin=.1in
+\evensidemargin=.1in
+\headheight=-.3in
+
+
+\newlength{\smallfigwidth}
+\setlength{\smallfigwidth}{6cm}
+
+\newcommand{\scscst}{\scriptscriptstyle}
+\newcommand{\scst}{\scriptstyle}
+
+\newcommand{\Rfunction}[1]{{\texttt{#1}}}
+\newcommand{\Robject}[1]{{\texttt{#1}}}
+\newcommand{\Rpackage}[1]{{\textsf{#1}}}
+\newcommand{\Rclass}[1]{{\textit{#1}}}
+
+\newcommand{\MAT}[1]{{\bf #1}}
+\newcommand{\VEC}[1]{{\bf #1}}
+
+\newcommand{\Amat}{{\MAT{A}}}
+
+%%notationally this is going to break
+\newcommand{\Emat}{{\MAT{E}}}
+\newcommand{\Xmat}{{\MAT{X}}}
+\newcommand{\Xvec}{{\VEC{X}}}
+\newcommand{\xvec}{{\VEC{x}}}
+
+
+\newcommand{\Zvec}{{\VEC{Z}}}
+\newcommand{\zvec}{{\VEC{z}}}
+
+\newcommand{\calG}{\mbox{${\cal G}$}}
+
+\newcommand{\R}{\texttt{R}}
+
+\bibliographystyle{plainnat}
+
+\title{Quantitative analysis of relative expression data}
+\author{M. Cowley}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introduction}
+
+The analysis of proteomic data has many analogies with 2 colour microarray data analysis, for which there are many many statistical methods.  This package contains code to import Relex formatted data \footnote{and should easily extend to proteomic data obtained from other software packages, like MaxQuant}, perform quality control plots, normalise, compare groups, adjust for multiple testing, and finally, export results. It must be noted from the start that the bulk of that hard work was done by Gordon Smyth and his team from WEHI, with their excellent limma package (REF). 
+
+We developed this \R package to facilitate an investigation into the effect of temperature upon the cold adapted marine bacterium, \textit{S. Aleskansis}. We labelled bugs grown at either 10\deg, or 30\deg with N^{14}, or N^{15}, then compared these samples either 30\deg vs 30\deg, or 30\deg vs 10\deg, with label flips, so some experiments with 10\deg labeled with N^{14}, and 30\deg with N^{15}, or 10\deg labeled with N^{15}, and 30\deg labeled with N^{14} --- these are called dye flips in microarrays.
+Since the bugs prefer to grow at 10\deg, we expected significant differences in protein abundance in  the 10\deg vs 30\deg, however we noticed a number of effects in the data which had been previously observed in 2 colour microarray data, which indicated that we needed to normalise the data. Since we had the dye flips, we needed to correct for those. We also had a mixture of technical and biological replicates --- since the technical replicates are expected to be more highly correlated than biological replicates, this needs to be accounted for.
+
+\section*{Importing data}
+We ran a number of experiments, analysed the results in Relex, then exported the results, to obtain a tab separated (.tsv) file\footnote{If I recall correctly, these files actually end in csv, which is normally reserved for comma separated files}. These files were filtered, in that some peptides were removed, as outlined in the paper. Thus, we have one filtered tsv relex file for each experiment, which can be imported into an \R session. First, load the required libraries:
+
+<<Setup, echo=TRUE, results=hide>>=
+library("limma")
+library("relex")
+@
+
+Import an example file:
+<<uno1>>=
+pkg <- file.path(path.package("relex"), "data")
+file <- dir(pkg, pattern="30-30", full=TRUE)[1]
+unnorm <- import.relex.experiment(file)
+names(unnorm)
+@
+
+This imports the peptide-level data, from a single relex tsv file. It contains the log_2 ratio, and log_10 signal/noise ratio from each peptide, which looks like this:
+<<uno2>>=
+head(unnorm$data.peptides)
+@
+
+It then summarises the peptide-level ratios into a protein-level ratio by averaging the log_2 ratio and log_10 noise from each peptide, and adding the standard deviation of the ratios and noise estimates, which look like this:
+<<uno3>>=
+head(unnorm$data.proteins)
+@
+
+You can import multiple files at once, which creates a list:
+<<30to30a>>=
+pkg <- file.path(path.package("relex"), "data")
+files <- dir(pkg, pattern="30-30", full=TRUE)
+unnorm <- import.relex.experiment(files)
+names(unnorm)
+@
+
+\subsection*{Importing non Relex data}
+If you didn't use relex to generate your data, but you can determine the peptide name, protein name, protein ratio, and either Signal/Noise ratio, or some other measure of abundance, then you can write your own function to import the data, and create a list with 3 elements: data.peptides, data.proteins, proteins, where the ratios are log_2, and the noise or noise measure is log_10.
+
+\section*{Initial QC}
+Quality control plots are one of the best ways of working out what the data looks like, and if it's suffering from any side effects that need normalising (Figure \ref{fig:qc1}). Since there is no true measure of abundance from the relex output, we use the noise 
+
+\begin{figure}[tp]  
+  \centering
+<<qcplot1, fig=TRUE, include=FALSE, width=6.2, height=5, echo=TRUE, results=hide>>=
+pkg <- file.path(path.package("relex"), "data")
+file <- dir(pkg, pattern="30-30", full=TRUE)[1]
+unnorm <- import.relex.experiment(file)
+MAplot.relex(unnorm, what="peptides", ylim=c(-2,2))
+@
+\includegraphics[width=1.25\smallfigwidth]{relex-qc1}
+\caption{\label{fig:qc1}An MAplot of average peptide abundance (x-axis), vs peptide ratio (y-axis).}
+\end{figure}
+
+
+\end{document}
