@@ -10,9 +10,9 @@ Description: A collection of functions that work closely
     Currently this works nicely with RelEx data, but should
     be flexible enough to handle proteomic data produced by
     other programs (like Maxquant?).
-Version: 1.0
+Version: 1.0.1
 URL: http://pwbc.garvan.unsw.edu.au
-Date: 2011-11-17
+Date: 2019-03-26
 Depends:
     R (>= 2.12.0),
     limma
@@ -37,5 +37,7 @@ Collate:
     'strip.fileextension.R'
     'symmetricise.R'
     'unionN.R'
-    'unique.counts.R'
+    'ucounts.R'
     'write.delim.R'
+RoxygenNote: 6.1.1
+Encoding: UTF-8
